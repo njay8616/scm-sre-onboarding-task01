@@ -5,12 +5,8 @@ on:
     branches:
       - dev
 
-permissions:
-  id-token: write   # Required for OIDC
-  contents: read
-
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,14 +14,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials (Assume Role via OIDC)
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ECRPushRole
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Verify Identity
-        run: aws sts get-caller-identity
 
       - name: Login to ECR
         run: |
@@ -37,12 +31,12 @@ jobs:
         run: |
           docker build -t apache-demo .
 
-      - name: Tag Docker Image
+      - name: Tag Image
         run: |
           docker tag apache-demo:latest \
           ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
-      - name: Push Docker Image to ECR
+      - name: Push to ECR
         run: |
           docker push \
           ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
